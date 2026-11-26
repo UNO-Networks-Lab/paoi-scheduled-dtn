@@ -3,7 +3,8 @@
 
 Journals (DCN among them) ask for each illustration as a separate file in
 addition to the embedded manuscript.  This script extracts each
-`tikzpicture` from `paper/main.tex` and `paper/figures_auto.tex`, wraps it
+`tikzpicture` from `paper/main.tex` and the data figures it inputs from
+`paper/datafigs/`, wraps it
 in a `standalone` document that reuses the manuscript's packages and
 notation macros, and compiles it to `paper/figures/Fig-<n>.pdf` in figure
 order.
@@ -43,7 +44,7 @@ PREAMBLE = r"""\usepackage{amsmath}% must precede txfonts (\iint clash)
 \newcommand{\Ymin}{Y_{\min}}
 \newcommand{\peff}{p_e}
 \newcommand{\kstar}{k^{\ast}}
-\newcommand{\GEN}{\mathrm{GEN}}
+\newcommand{\GEN}{\tau_{\mathrm{g}}}
 """
 
 
@@ -65,19 +66,21 @@ def main():
     if shutil.which("pdflatex") is None:
         sys.exit("pdflatex not found on PATH")
 
-    # figures_auto.tex opens with \definecolor / \pgfplotsset definitions the
+    # figures_auto.tex holds the \definecolor / \pgfplotsset definitions the
     # generated figures rely on; reuse them so exports match the manuscript.
-    auto_all = open(AUTO, encoding="utf8").read()
-    cut = auto_all.find(r"\begin{figure}")
-    auto_header = auto_all[:cut] if cut > 0 else ""
+    auto_header = open(AUTO, encoding="utf8").read()
     auto_header = "\n".join(l for l in auto_header.splitlines()
                              if not l.startswith("%"))
 
     main_src = open(MAIN, encoding="utf8").read()
     body = main_src[main_src.index(r"\begin{document}"):]
-    # figures_auto.tex is \input where the auto figures belong; splice it in
-    # so the exported numbering matches the compiled manuscript.
-    body = body.replace(r"\input{figures_auto}", auto_all)
+    # Each data figure is \input from paper/datafigs/ next to its first
+    # citation; splice the files in so the exported numbering matches the
+    # compiled manuscript.
+    def splice(m):
+        path = os.path.join(PAPER, m.group(1) + ".tex")
+        return open(path, encoding="utf8").read()
+    body = re.sub(r"\\input\{(datafigs/[^}]+)\}", splice, body)
 
     blocks = list(figure_blocks(body))
     if not blocks:

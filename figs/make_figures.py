@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
-"""Generate pgfplots figures (paper/figures_auto.tex) from sim/results CSVs.
+r"""Generate pgfplots figures from sim/results CSVs.
 
 Stdlib-only. Produces vector TikZ/pgfplots figures that compile with the
 paper's existing LaTeX toolchain (no matplotlib). Re-run after new sim
 results to refresh the figures.
 
     python3 figs/make_figures.py
+
+Outputs:
+  paper/figures_auto.tex        shared colour palette + pgfplots style
+                                (\input once in the preamble)
+  paper/datafigs/<name>.tex     one figure environment per file, \input
+                                in main.tex next to the figure's first
+                                citation, so figures are numbered in
+                                order of citation as the journal requires
 """
 from __future__ import annotations
 
 import csv
 import os
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(ROOT, "sim", "results")
 OUT = os.path.join(ROOT, "paper", "figures_auto.tex")
+FIGDIR = os.path.join(ROOT, "paper", "datafigs")
 
 
 def load(name):
@@ -54,7 +64,8 @@ def fig_e2():
 \caption{{Result~1 (E1/E2): simulated mean AoI and OPAoI vs.\ duty cycle
 match the closed forms; the peak grows linearly and the mean
 quadratically in $(1-\delta)$ (provisioning divergence). Markers are
-Monte-Carlo means with 95\% CIs (smaller than markers).}}
+Monte Carlo means with 95\% confidence intervals (smaller than
+markers).}}
 \label{{fig:r1}}
 \end{{figure}}
 """
@@ -211,27 +222,23 @@ def fig_r3_tier2():
 \begin{{figure}}[t]\centering
 \begin{{tikzpicture}}
 \begin{{axis}}[paperfig,width=\columnwidth,height=0.6\columnwidth,
-  xlabel={{energy-adequacy ratio $\eta$ (harvest per update $/\,e$)}},
+  xlabel={{energy adequacy per update, $\eta_{{\mathrm{{g}}}}=\lambda_e\tau_{{\mathrm{{g}}}}/e$}},
   ylabel={{mean OPAoI (periods $P$)}},
   legend style={{at={{(0.97,0.52)}},anchor=east}},
   error bars/y dir=both,error bars/y explicit]
 \addplot[cB,thick,mark=square*,mark size=1.6pt] coordinates {{{coords('k1_paoi','k1_paoi_ci')}}};
-\addlegendentry{{single-copy CGR}}
+\addlegendentry{{stock single-copy CGR}}
 \addplot[cA,thick,mark=*,mark size=1.6pt] coordinates {{{coords('k2_paoi','k2_paoi_ci')}}};
-\addlegendentry{{CGR $k{{=}}2$ (this work)}}
+\addlegendentry{{$k$-copy router, $k{{=}}2$}}
 \end{{axis}}
 \end{{tikzpicture}}
-\caption{{Replication benefit in a real CGR stack with our CGR-native
-$k$-copy router (dtnsim, random relay faults, source energy gate; 10
-seeds, 95\% CIs). Sending two copies over the two best distinct CGR
-routes cuts mean OPAoI by roughly $6\times$ versus single-copy across the
-whole energy range---the order statistic hedges relay faults. Because the
-per-transmission energy gate defers the second copy when the battery is
-low (rather than dropping the update), the benefit degrades gracefully as
-$\eta$ falls instead of inverting. This experiment isolates the
-fault-hedging \emph{{mechanism}}; it is not a test of the atomic
-all-or-nothing policy of \eqref{{eq:kstar}}, whose over-replication
-penalty appears in Fig.~\ref{{fig:r3atomic}}.}}
+\caption{{Two-relay plan under relay faults in dtnsim (S2; one update
+every $\tau_{{\mathrm{{g}}}}{{=}}300$\,s, five-copy source battery,
+per-transmission energy gate; ten seeds, 95\% CIs). The energy axis is
+the adequacy per update interval, $\eta_{{\mathrm{{g}}}}$, not the
+per-period $\eta$. Both arms are burst-limited and differ in router
+implementation as well as in copy count, so the ratio is not a
+controlled measurement of hedging (Section~\ref{{sec:sim}}).}}
 \label{{fig:r3tier2}}
 \end{{figure}}
 """
@@ -264,17 +271,14 @@ def fig_r3_atomic():
 {body}
 \end{{axis}}
 \end{{tikzpicture}}
-\caption{{Tier-2 atomic threshold test (real CGR, fault-free
-3-relay staggered diamond, update-atomic admission: launch $k$ copies
-iff the battery holds $k$ units, else skip the whole update; 5 seeds).
-The over-replication penalty is now visible in the DTN stack:
-at $\eta{{=}}1$, $k{{=}}3$ admits $35\%$ of updates (theory
-$\min(1,\eta G_{{\mathrm{{gen}}}}/kP)$, matched to $<0.5\%$) and its
-peak age is $2.7\times$ single-copy's. At $\eta\ge3$ the degrees tie
-exactly: with a fault-free deterministic plan, oracle CGR's single copy
-already rides the earliest route, so extra copies deliver stale
-duplicates---the strict replication benefit requires route-outcome
-uncertainty (Fig.~\ref{{fig:r3tier2}}).}}
+\caption{{Tier-2 atomic threshold test (dtnsim CGR, fault-free
+three-relay staggered diamond; update-atomic admission launches $k$
+copies iff the battery holds $k$ units and otherwise skips the whole
+update; five seeds). Over-replication is penalized as \eqref{{eq:obj}}
+predicts: at $\eta{{=}}1$, $k{{=}}3$ admits $35\%$ of updates and its
+peak age is $2.7\times$ single-copy's. At $\eta\ge3$ the degrees tie,
+because on a fault-free plan CGR's single copy already rides the
+earliest route (Remark~\ref{{rem:uncertainty}}).}}
 \label{{fig:r3atomic}}
 \end{{figure}}
 """
@@ -328,12 +332,11 @@ def fig_hetero():
 \end{{axis}}
 \end{{tikzpicture}}
 \caption{{Energy coupling in the full heterogeneous chain (sensor $\to$ UAV
-mule $\to$ LEO $\to$ gateway in real CGR). A finite battery at the UAV/LEO
-relays must cover the per-contact forwarding burst; below that, end-to-end
-mean OPAoI degrades by $\sim\!11\times$ (and delivery collapses from $96\%$
-to $31\%$). With sufficient battery it matches the energy-unconstrained
-chain, whose mean delay confirms the additive composition
-$\E[Y]{{=}}\E[R_1]{{+}}\E[R_2]{{+}}\E[R_3]$ to $1.1\%$.}}
+mule $\to$ LEO $\to$ gateway, dtnsim CGR, reference seed). A finite
+battery at the UAV and LEO relays must cover the per-contact forwarding
+burst; below that size end-to-end mean OPAoI degrades by about
+$11\times$ and delivery falls from $96\%$ to $31\%$. With a sufficient
+battery the chain matches its energy-unconstrained level.}}
 \label{{fig:hetero}}
 \end{{figure}}
 """
@@ -385,8 +388,8 @@ def fig_ccdf():
 \begin{{figure}}[t]\centering
 \begin{{tikzpicture}}
 \begin{{semilogyaxis}}[paperfig,width=\columnwidth,height=0.6\columnwidth,
-  xlabel={{deadline $\Delta$ (periods $P$)}},
-  ylabel={{$\Pr(\PAoIper>\Delta)$}},legend pos=south west,grid=both,
+  xlabel={{deadline $d$ (periods $P$)}},
+  ylabel={{$\Pr(\PAoIper>d)$}},legend pos=south west,grid=both,
   legend cell align=left,ymin=0.0008,ymax=1.2]
 \addplot[cC,thick,densely dotted,mark=triangle*,mark size=1.5pt] coordinates {{{c('ccdf_k1')}}};
 \addlegendentry{{$k{{=}}1$}}
@@ -396,14 +399,86 @@ def fig_ccdf():
 \addlegendentry{{$k{{=}}4$}}
 \end{{semilogyaxis}}
 \end{{tikzpicture}}
-\caption{{PAoI tail (deadline-violation probability) at energy-abundant
-$\eta$: replication pulls in the tail via the order statistic. The
-probability of exceeding a $1.5P$ freshness deadline falls from $0.40$
-($k{{=}}1$) to $0.16$ ($k{{=}}2$) to $0.027$ ($k{{=}}4$)---a $15\times$
-reduction---and the $99$th-percentile PAoI drops from $1.90P$ to $1.59P$.
-Mean PAoI alone understates the benefit of replication for
-mission-critical traffic.}}
+\caption{{$\PAoIper$ tail (deadline-violation probability) at
+energy-abundant $\eta{{=}}6$ (twenty seeds; across-seed confidence intervals
+below $10^{{-3}}$, invisible at this scale). Replication pulls the tail in
+polynomially, with exponent $k$; the simulated points match the closed
+form \eqref{{eq:tailcf}} pointwise (Section~\ref{{sec:policy}}).}}
 \label{{fig:ccdf}}
+\end{{figure}}
+"""
+
+
+def fig_e15():
+    rows = {float(r["phi"]): r for r in load("e15_correlated.csv")}
+    plots = []
+    styles = [("cA", "*", "solid"), ("cC", "triangle*", "densely dotted"),
+              ("cE", "square*", "dashed"), ("cB", "diamond*", "dashdotted")]
+    for (phi, lab), (col, mk, ls) in zip(
+            [(0.0, "dwell $1$ (i.i.d.)"), (0.9, "dwell $10$"), (0.95, "dwell $20$"),
+             (0.98, "dwell $50$")], styles):
+        r = rows[phi]
+        c = " ".join(f"({k},{float(r[f'paoi_k{k}']):.4f})" for k in range(1, 7))
+        plots.append(rf"\addplot[{col},thick,{ls},mark={mk},mark size=1.5pt] coordinates {{{c}}};")
+        plots.append(rf"\addlegendentry{{{lab}: $k^\ast{{=}}{r['k_star']}$}}")
+    body = "\n".join(plots)
+    return rf"""
+\begin{{figure}}[t]\centering
+\begin{{tikzpicture}}
+\begin{{axis}}[paperfig,width=\columnwidth,height=0.62\columnwidth,
+  xlabel={{replication degree $k$}},ylabel={{mean $\PAoIper$ (normalized)}},
+  legend pos=north west,grid=both,legend cell align=left,xtick=data,
+  ymin=1.0,ymax=2.2]
+{body}
+\end{{axis}}
+\end{{tikzpicture}}
+\caption{{Measured failure boundary of the mean-based set-point under
+bursty harvest (E15; $\eta{{=}}3$, $K_{{\max}}{{=}}6$, $B{{=}}64$;
+two-state Markov-modulated harvest with the stated mean dwell, twelve
+seeds). The $\PAoIper(k)$ curve keeps its minimum at
+$k^\ast{{=}}3{{=}}\lfloor\eta\rfloor$ up to a mean dwell of ten periods;
+from a dwell of $20$ periods the minimum moves to $k{{=}}2$ and stays
+there through dwell $100$ (not shown), because long lean spells make the
+third copy's starvation cost exceed its order-statistic gain. The
+work-conservation identity holds at every dwell ($\le3.1{{\times}}10^{{-4}}$).}}
+\label{{fig:e15}}
+\end{{figure}}
+"""
+
+
+def fig_cgr_family():
+    rows = load("cgr_family.csv")
+    def c(col):
+        return " ".join(f"({float(r['eta'])},{float(r[col+'_mean']):.3f}) +- (0,{float(r[col+'_ci']):.3f})"
+                        for r in rows)
+    return rf"""
+\begin{{figure}}[t]\centering
+\begin{{tikzpicture}}
+\begin{{semilogyaxis}}[paperfig,width=\columnwidth,height=0.64\columnwidth,
+  xlabel={{energy-adequacy ratio $\eta$}},ylabel={{mean $\PAoIper$ (normalized)}},
+  legend pos=north east,grid=both,legend cell align=left,
+  ymin=1.05,ymax=9.5,ytick={{1,1.5,2,3,5,8}},
+  yticklabels={{$1$,$1.5$,$2$,$3$,$5$,$8$}},
+  error bars/y dir=both,error bars/y explicit]
+\addplot[cC,thick,densely dotted,mark=triangle*,mark size=1.5pt] coordinates {{{c('ecgr_res0')}}};
+\addlegendentry{{E-CGR (energy-validated single copy)}}
+\addplot[cD,thick,dashdotted,mark=diamond*,mark size=1.6pt] coordinates {{{c('rucop')}}};
+\addlegendentry{{RUCoP (delivery-max, $k{{=}}K_{{\max}}$)}}
+\addplot[cE,thick,dashed,mark=square*,mark size=1.5pt] coordinates {{{c('rucop_cap')}}};
+\addlegendentry{{RUCoP route set $+$ degree cap $k^\ast(\eta)$}}
+\addplot[cA,very thick,mark=*,mark size=1.7pt] coordinates {{{c('ours')}}};
+\addlegendentry{{$k^\ast(\eta)$ on CGR-order routes (ours)}}
+\addplot[cB,very thick,mark=o,mark size=1.9pt] coordinates {{{c('ours_joint')}}};
+\addlegendentry{{$k^\ast(\eta)$ $+$ phase-aware placement (ours)}}
+\end{{semilogyaxis}}
+\end{{tikzpicture}}
+\caption{{CGR-family comparison under one budget ($K_{{\max}}{{=}}4$
+candidate routes with heterogeneous success
+$q_i\in\{{0.90,0.75,0.60,0.45\}}$, ensemble phases, $B{{=}}12$, ten
+seeds, 95\% CIs; logarithmic axis). On this single-hop instance E-CGR
+reduces to a reserve-gated single copy on the earliest route and RUCoP
+to the most reliable routes (Section~\ref{{sec:sim}}).}}
+\label{{fig:cgrfamily}}
 \end{{figure}}
 """
 
@@ -417,7 +492,7 @@ def fig_policy():
 \begin{{figure}}[t]\centering
 \begin{{tikzpicture}}
 \begin{{axis}}[paperfig,width=\columnwidth,height=0.62\columnwidth,
-  xlabel={{energy-adequacy ratio $\eta$}},ylabel={{mean PAoI (normalized)}},
+  xlabel={{energy-adequacy ratio $\eta$}},ylabel={{mean $\PAoIper$ (normalized)}},
   legend pos=north east,grid=both,legend cell align=left,ymax=4.2]
 \addplot[cC,semithick,densely dotted,mark=triangle*,mark size=1.5pt] coordinates {{{c('paoi_k1')}}};
 \addlegendentry{{fixed $k{{=}}1$}}
@@ -429,13 +504,11 @@ def fig_policy():
 \addlegendentry{{AoI-Energy policy}}
 \end{{axis}}
 \end{{tikzpicture}}
-\caption{{The AoI-Energy policy selects the replication degree from the
-closed-form rule $k_{{\mathrm{{pol}}}}(\eta)=\arg\min_k\mathcal{{A}}(k)$
-(no search); it matched the per-$\eta$ exhaustive optimum in all 11 cases
-and is the lower envelope of every fixed-degree curve. A single fixed $k$
-is wasteful when energy is scarce (large $k$ starves) or stale when it is
-abundant (small $k$ misses the order-statistic gain); the adaptive policy
-is best at every energy level.}}
+\caption{{Mean $\PAoIper$ of each fixed replication degree and of the
+two-candidate rule \eqref{{eq:policy}} versus the energy adequacy $\eta$
+($B{{=}}64$, $K_{{\max}}{{=}}4$; eight seeds, shared across $k$). The rule
+matched the per-$\eta$ exhaustive optimum at all $11$ energy levels and
+is the lower envelope of the fixed-degree curves.}}
 \label{{fig:policy}}
 \end{{figure}}
 """
@@ -464,14 +537,23 @@ def main():
         "}\n")
     # fig_rucop() and fig_robust() retired (figure-count pruning): their key
     # numbers are quoted in the text; regenerate by re-adding here if needed.
+    # fig_r3_tier2() retired (2026-11-22): a controlled rerun
+    # (tier2/run_r3_cgr_control.sh) showed its ratio was not a hedging gain;
+    # the manuscript reports the controlled result in text.
     # fig_e11() retired (density pruning): its content is the Tier-1
     # traceability-table row + E11 numbers in Sec. VIII prose.
     blocks = [fig_e2(), fig_e4(), fig_e7(), fig_e8(), fig_e12(),
-              fig_policy(), fig_ccdf(), fig_r3_tier2(), fig_r3_atomic(),
-              fig_hetero()]
+              fig_policy(), fig_ccdf(), fig_r3_atomic(),
+              fig_e15(), fig_cgr_family(), fig_hetero()]
     with open(OUT, "w") as f:
-        f.write(header + "\n".join(blocks))
-    print(f"wrote {OUT}")
+        f.write(header)
+    os.makedirs(FIGDIR, exist_ok=True)
+    for block in blocks:
+        name = re.search(r"\\label\{fig:([^}]+)\}", block).group(1)
+        with open(os.path.join(FIGDIR, name + ".tex"), "w") as f:
+            f.write("% AUTO-GENERATED by figs/make_figures.py -- do not edit.\n"
+                    + block.lstrip("\n"))
+    print(f"wrote {OUT} and {len(blocks)} figures in {FIGDIR}")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PAoI over Scheduled, Energy-Constrained Multi-Segment DTNs</title>
+<title>Peak AoI in Scheduled DTNs</title>
 <style>
   :root{
     --bg:#ffffff; --ink:#1c2434; --mut:#5b6b8c; --card:#f4f6fb;
@@ -41,12 +41,11 @@
 <body>
 <header>
   <div class="wrap">
-    <div class="kicker">Manuscript prepared for submission &middot; Digital Communications and Networks</div>
-    <h1>Peak Age of Information over Scheduled, Energy-Constrained Multi-Segment DTNs: Bundle Replication under Route Uncertainty</h1>
+    <div class="kicker">Under review &middot; Digital Communications and Networks</div>
+    <h1>Peak Age of Information in Scheduled Delay-Tolerant Networks: Energy-Aware Bundle Replication under Route Uncertainty</h1>
     <div class="tagline">When is a bundle copy worth its energy? A freshness theory for LEO + UAV + terrestrial contact plans &mdash; validated from closed forms down to the ION reference implementation.</div>
     <div class="links">
       <a href="paper/main.pdf">Paper (PDF)</a>
-      <a class="ghost" href="slides/paoi-dtn-deck.pdf">Slides</a>
       <a class="ghost" href="https://github.com/UNO-Networks-Lab/paoi-scheduled-dtn">Code &amp; data</a>
       <a class="ghost" href="https://doi.org/10.5281/zenodo.21841317">DOI</a>
     </div>
@@ -64,17 +63,18 @@
   erasure or randomly failing relays, and recent satellite/DTN studies treat
   intermittent store&ndash;carry&ndash;forward connectivity; prior work does not,
   however, jointly couple deterministic contact-plan gating, multi-copy
-  replication, and an energy-harvesting copy budget. We provide closed-form residual-wait laws
-  for scheduled contacts, a composition rule with an explicit independence
-  condition, and an energy&ndash;replication threshold with an O(1) policy that
-  layers on top of Contact Graph Routing.</p>
+  replication, and an energy-harvesting copy budget. We derive residual-wait laws
+  for scheduled contacts (closed-form under random schedule offsets), a
+  composition rule with an explicit independence condition, and an
+  energy&ndash;replication threshold whose two-candidate degree rule layers on
+  top of Contact Graph Routing.</p>
 
   <h2>Headline numbers</h2>
   <div class="stats">
     <div class="stat"><b class="v">0.06%</b><span>residual-law error on a real Iridium-NEXT contact plan (101 passes)</span></div>
     <div class="stat"><b class="t">1.016</b><span>per-bundle regression slope in ION &mdash; the law holds bundle-for-bundle in the reference BP implementation</span></div>
     <div class="stat"><b class="a">2.7&times;</b><span>over-replication penalty in real CGR at &eta;=1 (atomic all-or-nothing admission)</span></div>
-    <div class="stat"><b class="v">0.41&ndash;0.95</b><span>residual-min ratio across 44 real Iridium pairs &mdash; the route set's latency-diversity potential, set by pass-phase alignment</span></div>
+    <div class="stat"><b class="v">0.41&ndash;0.95</b><span>residual-min ratio across 40 real Iridium pairs &mdash; the route set's latency-diversity potential, set by pass-phase alignment</span></div>
   </div>
 
   <h2>Contributions</h2>
@@ -94,10 +94,13 @@
     &lceil;&eta;&rceil;) with &eta; the copies harvested per contact period &mdash;
     monotone, saturating, and hardened by a distribution-free work-conservation
     battery-queue analysis.</li>
-    <li><b>An O(1) policy on top of CGR.</b> Two objective evaluations pick the copy
-    count; CGR picks the routes. Matched the exhaustive optimum at every tested i.i.d.-harvest configuration;
-    robust to contact-prediction error, and to bursty harvest up to a measured
-    persistence boundary.</li>
+    <li><b>A two-candidate degree rule on top of CGR.</b> Given CGR's route list, two
+    objective evaluations pick the copy count; CGR picks the routes. Matched the
+    exhaustive optimum at every energy level of the large-battery sweep (measured
+    failure regimes: small batteries, strongly persistent harvest); robust to
+    contact-prediction error and to bursty route faults; and a per-bundle
+    phase-aware placement rule is the best scheme in a comparison against E-CGR-
+    and RUCoP-style decision rules and their compositions with the degree cap.</li>
     <li><b>Phase-aware copy placement.</b> On real ephemeris the route-set
     latency-diversity potential is set by pass-phase alignment, which the contact plan exposes in advance &mdash;
     turning an independence assumption into a route-selection criterion.</li>
@@ -105,7 +108,7 @@
 
   <h2>Validation ladder</h2>
   <div class="card">
-    <b>Closed forms</b> &rarr; <b>model-exact Monte-Carlo</b> (E1&ndash;E18, all checks pass)
+    <b>Closed forms</b> &rarr; <b>model-exact Monte-Carlo</b> (E1&ndash;E20; every coded check passes)
     &rarr; <b>dtnsim</b> (Bundle Protocol + Contact Graph Routing, with an
     energy-harvesting battery module and a CGR-native k-copy router)
     &rarr; <b>real orbits</b> (Iridium-NEXT TLEs over Svalbard)
@@ -119,8 +122,8 @@
   <span style="color:var(--mut);font-size:14px">Tier-1 needs only Python 3.10+; Tier-2/ION instructions in the README.</span></div>
 
   <footer>
-    Manuscript prepared for submission to <em>Digital Communications and
-    Networks</em>. Code and data are MIT-licensed and archived on Zenodo
+    Manuscript under review at <em>Digital Communications and
+    Networks</em> (revised version, November 2026). Code and data are MIT-licensed and archived on Zenodo
     (<a href="https://doi.org/10.5281/zenodo.21841317">doi:10.5281/zenodo.21841317</a>);
     dtnsim and ION-DTN are third-party projects and are not redistributed here.
   </footer>

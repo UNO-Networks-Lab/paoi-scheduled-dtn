@@ -1,6 +1,6 @@
 {
-  "title": "Peak Age of Information over Scheduled, Energy-Constrained Multi-Segment DTNs: Bundle Replication under Route Uncertainty (artifact)",
-  "description": "Analysis code, simulators (model-exact Monte-Carlo; dtnsim/OMNeT++ Bundle Protocol + CGR patches; ION-DTN cross-check configs), real Iridium-NEXT contact-plan scenarios, recorded results, and figure generators for the manuscript prepared for submission to Digital Communications and Networks.",
+  "title": "Peak Age of Information in Scheduled Delay-Tolerant Networks: Energy-Aware Bundle Replication under Route Uncertainty (artifact)",
+  "description": "Analysis code, simulators (model-exact Monte-Carlo; dtnsim/OMNeT++ Bundle Protocol + CGR patches; ION-DTN cross-check configs), real Iridium-NEXT contact-plan scenarios, recorded results, and figure generators for the manuscript under review at Digital Communications and Networks (revised version, November 2026).",
   "upload_type": "software",
   "license": "MIT",
   "creators": [

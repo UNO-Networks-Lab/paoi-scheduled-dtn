@@ -91,9 +91,20 @@ sxx = sum((x - xm) ** 2 for x in resid_pred)
 sxy = sum((x - xm) * ((r - s) - ym) for x, (s, r) in zip(resid_pred, pairs))
 slope = sxy / sxx
 intercept = ym - slope * xm
+# OLS standard errors (n-2 dof) -> 95% CIs for slope and intercept
+sse = sum(((r - s) - intercept - slope * x) ** 2
+          for x, (s, r) in zip(resid_pred, pairs))
+s2 = sse / (n - 2)
+se_b = (s2 / sxx) ** 0.5
+se_a = (s2 * (1.0 / n + xm * xm / sxx)) ** 0.5
+ci_b, ci_a = 1.96 * se_b, 1.96 * se_a
+ss_tot = sum(((r - s) - ym) ** 2 for s, r in pairs)
+r2 = 1.0 - sse / ss_tot
 verdict = "PASS" if abs(slope - 1.0) <= 0.05 else "FAIL"
-print(f"per-bundle regression delay = a + b*residual_pred:")
-print(f"  slope b = {slope:.4f}   (law exact iff b=1; check |b-1|<=0.05: {verdict})")
-print(f"  intercept a = {intercept:.3f} s  (= dispatch lag, the model's T_s)")
+print(f"per-bundle regression delay = a + b*residual_pred (n={n}):")
+print(f"  slope b = {slope:.4f} +/- {ci_b:.4f} (95% CI [{slope-ci_b:.4f}, {slope+ci_b:.4f}])"
+      f"   (law exact iff b=1; check |b-1|<=0.05: {verdict})")
+print(f"  intercept a = {intercept:.3f} +/- {ci_a:.3f} s  (= dispatch lag, the model's T_s)")
+print(f"  R^2 = {r2:.4f};  residual sd = {s2**0.5:.3f} s")
 print("note: the raw mean includes the dispatch lag (T_s); at operational "
       "periods (P~5.7e3 s) that lag is ~0.04% of the mean.")

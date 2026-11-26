@@ -13,7 +13,7 @@ plan = one W=6 s window per P=60 s period (δ=0.10, scaled so a
 ~1000-bundle run fits in ~1 h wall clock; the law is scale-free in
 G²/2P). `bpsource` sends a timestamped bundle every 7.3 s
 (incommensurate with P → phase-mixed arrivals); `bpsink` logs receive
-epochs. 60 periods → 974 bundles.
+epochs. 120 periods (two hours) → 974 bundles.
 
 ## Recorded outcome (`results.txt`)
 
@@ -25,8 +25,11 @@ epochs. 60 periods → 974 bundles.
   mixed residual law; max 57.1 s ≈ G.
 - **Non-circular per-bundle check:** regressing measured delay on the
   per-bundle *predicted* residual (from each bundle's send phase) gives
-  slope 1.016 (law exact iff 1; tolerance 0.05) with intercept 1.92 s =
-  the dispatch lag. At operational periods (P ≈ 5.7×10³ s) that lag is
+  slope 1.016 (95% CI 1.013–1.019; law exact iff 1; tolerance 0.05) with
+  intercept 1.92 s. The 1.6% excess over 1 is a two-population effect:
+  window arrivals are dispatched after 0.55 s, gap arrivals after 2.50 s,
+  and regressing across both adds p_w·Δlag·E[R]/Var(R) ≈ 0.016 to the
+  slope. At operational periods (P ≈ 5.7×10³ s) that lag is
   ~0.04% of the mean.
 
 ## Files
@@ -61,11 +64,11 @@ autoreconf -fi && ./configure --prefix=/usr/local
 make -j"$(nproc)" && sudo make install && sudo ldconfig
 ```
 
-Then, from this directory (needs ~65 min wall clock for 60 periods —
+Then, from this directory (needs ~2 h wall clock for 120 periods —
 the contact plan runs in real time):
 
 ```bash
-./run_capture.sh 60 delays_raw.log results.txt
+./run_capture.sh 120 delays_raw.log results.txt
 ```
 
 The scripts are path-relative (`ION_NODE_LIST_DIR` is set to this

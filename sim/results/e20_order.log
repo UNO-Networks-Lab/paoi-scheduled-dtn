@@ -1,0 +1,6 @@
+ chain  GEN[s] |  P(stale) |  E[Z]+E[Y]  PAoI^per(reset)  bias% | Ymax-Ymin / Z
+   leo     400 |    0.0000 |       2923             2923  -0.01 |  13.40
+   leo    5736 |    0.0000 |       8777             8777   0.00 |   0.00
+hetero     400 |    0.0000 |       7483             7484   0.01 | 117.10
+hetero    5736 |    0.0000 |      12493            12496   0.03 |   7.00
+-> wrote /home/haoyu/dtn-sim/results/e20_order.csv

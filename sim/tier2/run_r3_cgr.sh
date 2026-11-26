@@ -15,7 +15,7 @@ NED="$DTNSIM_ROOT/src:$DTNSIM_ROOT"
 [ -x "$BIN" ] || { echo "error: dtnsim binary not found at $BIN (set DTNSIM_ROOT)" >&2; exit 1; }
 DEST=4
 SEEDS=10
-paoi() { python3 aoi_from_vec.py "$1" --dest $DEST --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI/{print $4}'; }
+paoi() { python3 aoi_from_vec.py "$1" --dest $DEST --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI \(per-outage\)/{print $4; exit}'; }
 recv() { grep "node\[$DEST\].app appBundleReceived:count" "$1"|awk '{print $NF}'; }
 
 run() {  # $1=tag rest=routing args ; uses $RATE $SD

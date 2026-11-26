@@ -8,13 +8,13 @@
 # PRIVATE_PATHS are tracked in dev but stripped from the public tree.
 set -euo pipefail
 MSG="${1:?usage: publish-public.sh \"commit message\"}"
-PRIVATE_PATHS=(paper/cover-letter.md)
+PRIVATE_PATHS=(paper/cover-letter.md paper/reviews slides)
 
 # Build the public tree = HEAD tree minus PRIVATE_PATHS, via a temp index.
 TMPIDX=$(mktemp)
 trap 'rm -f "$TMPIDX"' EXIT
 GIT_INDEX_FILE="$TMPIDX" git read-tree HEAD
-GIT_INDEX_FILE="$TMPIDX" git rm -q --cached --ignore-unmatch -- "${PRIVATE_PATHS[@]}"
+GIT_INDEX_FILE="$TMPIDX" git rm -q -r --cached --ignore-unmatch -- "${PRIVATE_PATHS[@]}"
 TREE=$(GIT_INDEX_FILE="$TMPIDX" git write-tree)
 
 if [ "${ROOT:-0}" = "1" ]; then

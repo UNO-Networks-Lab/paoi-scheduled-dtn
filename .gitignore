@@ -28,3 +28,6 @@ paper/*.fdb_latexmk
 paper/pg*.jpg
 slides/slide-*.jpg
 slides/~$*
+
+# resubmission upload package (local only)
+upload-r1/

@@ -15,7 +15,7 @@ NED="$DTNSIM_ROOT/src:$DTNSIM_ROOT"
 FAULT='--dtnsim.node[2..3].fault.enable=true --dtnsim.node[2..3].fault.meanTTF=8000s --dtnsim.node[2..3].fault.meanTTR=4000s'
 
 deliv() { grep 'node\[4\].app appBundleReceived:count' "$1"|awk '{print $NF}'; }
-paoi() { python3 aoi_from_vec.py "$1" --dest 4 --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI/{print $4}'; }
+paoi() { python3 aoi_from_vec.py "$1" --dest 4 --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI \(per-outage\)/{print $4; exit}'; }
 
 printf 'eta\tk1_deliv\tk1_paoi\tk2_deliv\tk2_paoi\n'
 for rate in 0.0020 0.0033 0.0050 0.0067 0.0100 0.0200; do

@@ -19,7 +19,7 @@ FAULT='--dtnsim.node[2..5].fault.enable=true --dtnsim.node[2..5].fault.meanTTF=8
 
 deliv() { grep "node\[$DEST\].app appBundleReceived:count" "$1"|awk '{print $NF}'; }
 srctx() { grep 'node\[1\].dtn dtnBundleSentToCom:count' "$1"|awk '{print $NF}'; }
-paoi()  { python3 aoi_from_vec.py "$1" --dest $DEST --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI/{print $4}'; }
+paoi()  { python3 aoi_from_vec.py "$1" --dest $DEST --warmup-frac 0.1 --cluster-gap 600 2>/dev/null | awk '/mean PAoI \(per-outage\)/{print $4; exit}'; }
 
 run() {  # $1=tag, rest=routing args
   local tag=$1; shift

@@ -80,7 +80,7 @@ reproduction with `python3 ../compare_results.py tier2/results`.
 - `make_tle_scenario.py` — real Iridium-NEXT contact plan from
   `iridium.tle` over a Svalbard station via Skyfield
   (provenance: `TLE_PROVENANCE.md`).
-- `two_tle_rmin.py` — 44-pair residual-min scan over real satellite
+- `two_tle_rmin.py` — 40-pair residual-min scan over real satellite
   pairs.
 - `aoi_from_vec.py` — reconstruct AoI/PAoI (per-reset and per-update)
   from the delivery vector; `*_collect.py` / `*_aggregate.py` — CSV
@@ -114,8 +114,7 @@ Sweeps (each writes its CSV under `results/`):
 ### R1 — residual law in real CGR (`results/results_leo_summary.txt`)
 
 1129/1147 delivered over the periodic plan; **mean delivery delay
-2453.92 s vs closed form E[R]=(P−W)²/2P=2453.9 s** (4 significant
-figures); delay histogram = the full mixed residual law (atom ≈δ at 0 +
+2453.92 s vs closed form E[R]=(P−W)²/2P=2454.1 s** (within 0.01%); delay histogram = the full mixed residual law (atom ≈δ at 0 +
 uniform slab on (0,G]); mean per-reset PAoI 5450 s ≈ G + finite-horizon
 offset, mean AoI 2554 s ≈ E[R] + same offset.
 
@@ -151,46 +150,83 @@ k\*=min(K_max,⌊η⌋). (dtnsim's `cgrModel350_2Copies` does not replicate
 on a symmetric diamond — its diversity metric is arrival-time-vs-hops —
 and `epidemic` misbehaved here; `sprayAndWait` is the clean k knob.)
 
-### Replication benefit, CGR-native k-copy router (`results/r3_cgr_raw.csv`)
+### Two-relay plan under faults (`results/r3_cgr_raw.csv`) — read with caution
 
 `run_r3_cgr.sh` + `r3_aggregate.py`, 10 seeds, 95% CIs, relay faults
-on: **CGR k=2 cuts mean per-reset PAoI ≈6× vs single-copy across the
-harvest range** — 8.9P → 1.39P at η=0.6 and 7.0P → 1.19P at η=6 —
-by hedging relay faults across two decorrelated CGR routes. The
-per-transmission energy gate defers the second copy when battery-low,
-so under this (non-atomic) admission the benefit degrades gracefully;
-the over-replication penalty requires all-or-nothing budgeting, which
-the next experiment isolates.
+on, per-transmission energy gate, one update every 300 s (about 19 per
+period), source battery of 5 copies. The energy axis of this experiment
+is the adequacy **per update interval**, η_g = λ_e·300 s/e, not the
+per-period η of the manuscript's Section 6. Our k-copy router with two
+copies keeps mean OPAoI 5.9–6.5× below dtnsim's stock single-copy CGR
+(8.9P → 1.39P at η_g=0.6; 7.0P → 1.19P at η_g=6).
+
+This is **not** a controlled measurement of hedging: (i) both arms are
+burst-limited — a 5-copy battery cannot clear the updates queued for a
+pass, so delivery is 34% (lowest energy) to 73–76% (highest) of the
+generated updates, nearly equal in the two arms, and the single-copy
+arm carries a standing backlog; (ii) the arms differ in router
+implementation (`cgrModel350` vs `cgrModelKCopies`) as well as in copy
+count.
+
+**Controlled rerun (2026-11-22, `run_r3_cgr_control.sh`,
+`results/r3_cgr_control_raw.csv`; 10 seeds, the k-copy router in both
+arms at one and two copies, source batteries of 5 and 32 copies).**
+The router is not the cause: at battery 5 the single-copy arm reproduces
+the stock-router results identically, seed for seed (8.89P at η_g=0.6,
+7.01P at η_g=6). Summary with paired CIs: `python3
+r3_cgr_control_aggregate.py` → `results/r3_cgr_control.csv`. The relays
+are bent pipes (uplink and downlink contacts share windows), so a
+faulted relay almost never holds a committed bundle and CGR re-routes it
+from the source: the effective per-pass success is ≈1, the q→1 limit of
+the manuscript's eq. (30). With battery 32 and η_g ≥ 1.5 a single copy is as fresh as two
+or fresher: mean OPAoI 0.71P for one copy; two copies are staler by
+0.49 ± 0.06P (η_g=1.5), 0.46 ± 0.07P (2.0), 0.15 ± 0.14P (3.0), and tie at
+6.0 (0.05 ± 0.11P; paired per-seed differences, 95% CIs). The large ratio
+survives only where the source cannot keep up with its own updates
+(battery 5, or η_g < 1). Under these stall-type faults, which CGR routes
+around, the outcome is the oracle tie of the manuscript's Remark 8, so
+the manuscript reports the controlled result in text and no longer shows
+the two-relay figure; the hedge is established model-exactly
+(`e_baselines.py`, `e19_bursty_faults.py`). The `recv` column counts
+received copies, so for two copies it includes duplicates.
 
 ### Atomic all-or-nothing threshold (`results/r3_atomic.csv`)
 
 With atomic admission (fire k copies only if battery ≥ ke), the
 starvation penalty appears in real CGR: at η=1, k=3 is 2.7× worse than
-k=1; admitted fraction matches the theory to <0.5%; at η≥k under a
+k=1; admitted fraction matches the theory to within 0.7%; at η≥k under a
 fault-free deterministic plan the degrees tie — the replication benefit
 requires route uncertainty, exactly the manuscript's framing.
 
 ### E16 — unified experiment (`results/e16_unified.csv`)
 
-One topology, atomic admission, relay faults, both metrics, 10 seeds:
-PAoI-optimal degree walks 1→2→3→3 as η grows, matching the two-candidate
-policy; stall-type vs loss-type faults separate as predicted (hedge size
-set by the fault-to-loss conversion given route richness).
+One topology, atomic admission, relay faults, both metrics, 10 seeds,
+six-copy source battery. The starvation side is significant (every
+degree above η is penalized: +144%, +71%, +33%), so the argmin is at
+most ⌊η⌋. Among affordable degrees the means are ordered as predicted
+(−0.6%/−0.8% for the second copy in OPAoI/PAoI^per, a further −0.2 to
+−0.3% for the third) but the paired per-seed differences are within
+noise (−44 ± 131 s, −16 ± 98 s): consistent with, not resolving,
+min(K_max, ⌊η⌋). dtnsim's faults are stall-type, so the effective
+per-pass success is close to one here.
 
 ### E17 — contact-capacity boundary (`results/e17_capacity.csv`)
 
 Window capacity fixed at m bundles, offered rate swept ~1→16 per
-period, 3 seeds: mean delay stays within 12% of the unloaded value up
-to and including ρ=1, then fails as a step (ρ=2: delay ×119, delivered
-fraction = the capacity ratio). Replication doubles offered contact
-volume, so k=2 reaches the same wall at half the update rate — the
-manuscript's low-load scope boundary, measured.
+period, 3 seeds, M=64 as the unloaded control on the same seeds.
+Per-seed loaded/unloaded delay ratios for one copy: 1.00–1.03 up to
+ρ=0.5 (one seed 1.12 at the lowest load), 1.05–1.38 at ρ=1, and
+117–124 at ρ=2, where the delivered fraction drops to the capacity
+ratio: a step, not a knee. Two copies double the offered contact volume:
+only mildly affected at 8 updates/period (ρ=0.67, ratios 1.05–1.13),
+past the wall at 16 (ρ=1.33, ratios 95–101). This is the manuscript's
+low-load scope boundary, measured.
 
 ### Real Iridium-NEXT ephemeris (`results/tle_summary.txt`, `results/two_tle_scan.log`)
 
 Single satellite over Svalbard (101 passes / 7 days): 2015/2015
 delivered; mean delay 2490.9 s vs renewal law 2492.4 s (**0.06%**).
-44-pair scan: pairwise residual-min ratio spans 0.41–0.95 with phase
+40-pair scan: pairwise residual-min ratio spans 0.41–0.95 with phase
 alignment — the route-set latency-diversity *potential* on real orbits;
 the near-independent pair matches the product formula to 4.3%.
 

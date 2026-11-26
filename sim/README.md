@@ -90,6 +90,9 @@ bit-for-bit; Tier-2 matches to seed noise given the pinned dtnsim commit.
 - `e_ceiling.py` — E14 ceiling branch of the two-candidate rule.
 - `e15_correlated.py` — E15 Markov-modulated (bursty) harvest.
 - `e18_uncertain.py` — E18 uncertainty objective (Proposition 1).
+- `e19_bursty_faults.py` — E19 correlated (two-state Markov) route faults: robustness of the two-candidate degree and of the hedge to fault persistence.
+- `e20_order.py` — E20 order-preservation frequency on the heterogeneous chain (FIFO segments, two generation cadences).
+- `e_cgr_family.py` — CGR-family comparison: E-CGR (energy-validated single copy with reserve), RUCoP (delivery-max), RUCoP route set + degree cap, ours (CGR order), ours + per-bundle phase-aware placement.
 - `check_gainboundq.py` — Proposition-1 increment condition over a
   (δ, q, η) grid.
 - `e_tail.py` — closed-form PAoI tail / CCDF.

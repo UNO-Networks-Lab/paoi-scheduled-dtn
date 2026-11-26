@@ -201,14 +201,18 @@ def simulate_adaptive(rule, eta: float, q: float, phase_mode: str,
 
 def expC_adaptive_baselines():
     """Battery-state-adaptive rules vs the mean-based two-candidate set-point,
-    same faults/energy: greedy (fire whatever the battery holds, capped K_max)
-    and threshold (all-in K_max iff affordable, else minimal single copy)."""
+    same faults/energy: greedy (fire whatever the battery holds, capped K_max),
+    threshold (replicate to the earliest K_max routes whenever affordable, else
+    a single copy), and floor-greedy (the conservative energy-constrained rule:
+    fire floor(eta) copies when affordable, else whatever the battery holds)."""
     delta = W / P
     rows = []
     print("\n== C. adaptive baselines (faults on, q=%.3f) ==" % Q_FAULT)
-    print(f"{'eta':>5} | {'k* set-point':>14} | {'battery-greedy':>14} | {'battery-thresh':>14} | best")
+    print(f"{'eta':>5} | {'k* set-point':>14} | {'battery-greedy':>14} | "
+          f"{'earliest-K':>14} | {'floor-greedy':>14} | best")
     for eta in (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0):
         ks = k_policy(eta, delta, P, K_MAX)
+        kf = max(1, min(K_MAX, int(eta)))
         ours = summarize([simulate("rep", ks, eta, Q_FAULT, "independent", s).mean_paoi
                           for s in SEEDS])
         greedy = summarize([simulate_adaptive(
@@ -217,17 +221,23 @@ def expC_adaptive_baselines():
         thresh = summarize([simulate_adaptive(
             lambda bb: K_MAX if bb >= K_MAX else (1 if bb >= 1 else 0),
             eta, Q_FAULT, "independent", s).mean_paoi for s in SEEDS])
-        vals = {"kstar": ours.mean, "greedy": greedy.mean, "thresh": thresh.mean}
+        floorg = summarize([simulate_adaptive(
+            lambda bb, kf=kf: min(kf, int(bb)) if bb >= 1 else 0,
+            eta, Q_FAULT, "independent", s).mean_paoi for s in SEEDS])
+        vals = {"kstar": ours.mean, "greedy": greedy.mean, "thresh": thresh.mean,
+                "floor_greedy": floorg.mean}
         best = min(vals, key=vals.get)
         print(f"{eta:>5.1f} | {ours.mean:>7.3f} ±{ours.ci95:>5.3f} | "
               f"{greedy.mean:>7.3f} ±{greedy.ci95:>5.3f} | "
-              f"{thresh.mean:>7.3f} ±{thresh.ci95:>5.3f} | {best}")
+              f"{thresh.mean:>7.3f} ±{thresh.ci95:>5.3f} | "
+              f"{floorg.mean:>7.3f} ±{floorg.ci95:>5.3f} | {best}")
         rows.append([eta, ks, ours.mean, ours.ci95, greedy.mean, greedy.ci95,
-                     thresh.mean, thresh.ci95, best])
+                     thresh.mean, thresh.ci95, floorg.mean, floorg.ci95, best])
     with open(os.path.join(RESULTS, "baselines_adaptive.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["eta", "k_star", "kstar_mean", "kstar_ci", "greedy_mean",
-                    "greedy_ci", "thresh_mean", "thresh_ci", "best"])
+                    "greedy_ci", "thresh_mean", "thresh_ci", "floorg_mean",
+                    "floorg_ci", "best"])
         w.writerows(rows)
 
 

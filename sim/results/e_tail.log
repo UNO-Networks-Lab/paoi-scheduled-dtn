@@ -1,0 +1,15 @@
+PAoI tail at eta=6.0 (normalized to P); 20 seeds, n_peaks/k ~ 2380000
+k   mean (±CI)        p90 (±CI)         p99 (±CI)         P(PAoI>1.5P) (±CI)
+1  1.4098±0.0005   1.8049±0.0005   1.8950±0.0001   0.4048±0.0009
+2  1.2481±0.0003   1.5891±0.0008   1.8050±0.0005   0.1643±0.0006
+4  1.1231±0.0002   1.3427±0.0005   1.5886±0.0012   0.0270±0.0003
+tail-reduction ratio CCDF_k1/CCDF_k across deadlines (mean ± CI):
+  deadline 1.10P  2: 1.241±0.001   4: 1.917±0.003
+  deadline 1.20P  2: 1.418±0.002   4: 2.851±0.005
+  deadline 1.30P  2: 1.651±0.003   4: 4.515±0.011
+  deadline 1.40P  2: 1.976±0.006   4: 7.738±0.041
+  deadline 1.50P  2: 2.464±0.009   4: 14.985±0.133
+  deadline 1.60P  2: 3.27±0.016   4: 35.384±0.516
+  deadline 1.70P  2: 4.891±0.034   4: 119.169±4.055
+  deadline 1.80P  2: 9.545±0.105   4: 990.092±180.979
+-> wrote /home/haoyu/dtn-sim/results/paoi_ccdf.csv and paoi_tail_quantiles.csv
